@@ -9,7 +9,7 @@ namespace: staging
 images:
 - name: localhost/backend
   newName: localhost/backend
-  newTag: "3.4"
+  newTag: "1.5"
 - name: localhost/frontend
   newName: localhost/frontend
   newTag: "1.2"
