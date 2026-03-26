@@ -11,8 +11,7 @@ images:
   newName: localhost/backend
   newTag: "1"
 - name: localhost/frontend
-  newName: localhost/frontend
-  newTag: "1.2"
+  newName: localhost/frontend:1,2
 
 patches:
 - path: patch-ingress.yaml
