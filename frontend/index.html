@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Deploy Verification Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid #1e2533;
+    }
+
+    header h1 { font-size: 1.4rem; font-weight: 600; color: #f8fafc; }
+    header h1 span { color: #6366f1; }
+
+    .badge {
+      padding: .3rem .8rem;
+      border-radius: 999px;
+      font-size: .75rem;
+      font-weight: 600;
+      letter-spacing: .04em;
+    }
+    .badge-local    { background: #1e293b; color: #94a3b8; }
+    .badge-staging  { background: #1e3a5f; color: #60a5fa; }
+    .badge-prod     { background: #14532d; color: #4ade80; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .card {
+      background: #161b27;
+      border: 1px solid #1e2533;
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+    }
+
+    .card-title {
+      font-size: .7rem;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: #64748b;
+      margin-bottom: 1rem;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: .45rem 0;
+      border-bottom: 1px solid #1e2533;
+      font-size: .85rem;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-row .label { color: #64748b; }
+    .info-row .value { color: #e2e8f0; font-family: 'SF Mono', 'Fira Code', monospace; font-size: .8rem; }
+
+    .checks-grid {
+      display: flex;
+      flex-direction: column;
+      gap: .5rem;
+    }
+
+    .check-item {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      font-size: .85rem;
+    }
+
+    .check-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .7rem;
+      flex-shrink: 0;
+    }
+    .check-ok   { background: #14532d; color: #4ade80; }
+    .check-fail { background: #450a0a; color: #f87171; }
+    .check-wait { background: #1e2533; color: #64748b; }
+
+    .endpoints {
+      display: flex;
+      flex-direction: column;
+      gap: .5rem;
+    }
+
+    .endpoint-btn {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      background: #0f1117;
+      border: 1px solid #1e2533;
+      border-radius: 8px;
+      padding: .6rem 1rem;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      width: 100%;
+      text-align: left;
+    }
+    .endpoint-btn:hover { border-color: #6366f1; background: #13151f; }
+
+    .method {
+      font-size: .65rem;
+      font-weight: 700;
+      padding: .2rem .5rem;
+      border-radius: 4px;
+      background: #1e3a5f;
+      color: #60a5fa;
+      letter-spacing: .04em;
+    }
+
+    .endpoint-path { font-family: monospace; font-size: .82rem; color: #94a3b8; }
+    .endpoint-desc { font-size: .75rem; color: #475569; margin-left: auto; }
+
+    .response-box {
+      background: #0a0d14;
+      border: 1px solid #1e2533;
+      border-radius: 8px;
+      padding: 1rem;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: .78rem;
+      color: #94a3b8;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 260px;
+      overflow-y: auto;
+      margin-top: .75rem;
+      min-height: 60px;
+      line-height: 1.6;
+    }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      font-size: .75rem;
+      color: #475569;
+      margin-bottom: .5rem;
+    }
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #475569;
+    }
+    .dot.ok      { background: #4ade80; box-shadow: 0 0 6px #4ade80; }
+    .dot.error   { background: #f87171; }
+    .dot.loading { background: #facc15; animation: pulse 1s infinite; }
+
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    .refresh-btn {
+      background: #6366f1;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: .5rem 1.25rem;
+      font-size: .82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .refresh-btn:hover { background: #4f46e5; }
+
+    .tag-pill {
+      display: inline-block;
+      background: #1e3a5f;
+      color: #60a5fa;
+      border-radius: 6px;
+      padding: .15rem .6rem;
+      font-family: monospace;
+      font-size: .8rem;
+    }
+
+    footer {
+      margin-top: 2rem;
+      text-align: center;
+      font-size: .72rem;
+      color: #334155;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Deploy <span>Verification</span> Dashboard</h1>
+  <div style="display:flex;gap:.75rem;align-items:center;">
+    <span class="badge badge-local" id="env-badge">cargando...</span>
+    <button class="refresh-btn" onclick="refreshAll()">↻ Refresh</button>
+  </div>
+</header>
+
+<!-- Fila 1: info + checks -->
+<div class="grid">
+
+  <div class="card">
+    <div class="card-title">Info del despliegue</div>
+    <div class="info-row">
+      <span class="label">Versión / Tag</span>
+      <span class="value" id="val-version">—</span>
+    </div>
+    <div class="info-row">
+      <span class="label">Namespace</span>
+      <span class="value" id="val-namespace">—</span>
+    </div>
+    <div class="info-row">
+      <span class="label">Environment</span>
+      <span class="value" id="val-env">—</span>
+    </div>
+    <div class="info-row">
+      <span class="label">Hostname / Pod</span>
+      <span class="value" id="val-hostname">—</span>
+    </div>
+    <div class="info-row">
+      <span class="label">Timestamp</span>
+      <span class="value" id="val-ts">—</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Verificación del deploy</div>
+    <div class="checks-grid" id="checks-grid">
+      <div class="check-item">
+        <div class="check-icon check-wait">?</div>
+        <span>Esperando respuesta del backend...</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Config / Secrets</div>
+    <div class="info-row">
+      <span class="label">DB_HOST</span>
+      <span class="value" id="val-dbhost">—</span>
+    </div>
+    <div class="info-row">
+      <span class="label">SECRET_KEY</span>
+      <span class="value" id="val-secret">—</span>
+    </div>
+    <div class="info-row">
+      <span class="label">NAMESPACE (TF)</span>
+      <span class="value" id="val-tf-ns">—</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- Fila 2: endpoints interactivos -->
+<div class="card">
+  <div class="card-title">Endpoints — haz clic para probar</div>
+  <div class="endpoints">
+
+    <button class="endpoint-btn" onclick="callEndpoint('/health', 'resp-health', this)">
+      <span class="method">GET</span>
+      <span class="endpoint-path">/health</span>
+      <span class="endpoint-desc">Liveness check</span>
+    </button>
+
+    <button class="endpoint-btn" onclick="callEndpoint('/api/info', 'resp-info', this)">
+      <span class="method">GET</span>
+      <span class="endpoint-path">/api/info</span>
+      <span class="endpoint-desc">Versión, namespace, hostname</span>
+    </button>
+
+    <button class="endpoint-btn" onclick="callEndpoint('/api/config', 'resp-config', this)">
+      <span class="method">GET</span>
+      <span class="endpoint-path">/api/config</span>
+      <span class="endpoint-desc">Variables de entorno / secrets</span>
+    </button>
+
+    <button class="endpoint-btn" onclick="callEndpoint('/api/deploy-check', 'resp-deploy', this)">
+      <span class="method">GET</span>
+      <span class="endpoint-path">/api/deploy-check</span>
+      <span class="endpoint-desc">Verificación completa del tag desplegado</span>
+    </button>
+
+  </div>
+
+  <div class="status-bar" style="margin-top:1rem;">
+    <div class="dot" id="resp-dot"></div>
+    <span id="resp-status">Sin petición aún</span>
+  </div>
+  <div class="response-box" id="response-box">// La respuesta del backend aparecerá aquí</div>
+</div>
+
+<footer>Deploy Test App · HTML + FastAPI · docker-compose local</footer>
+
+<script>
+  const BACKEND = window.location.hostname === 'localhost'
+    ? 'http://localhost:8080'
+    : '/api-internal';   // en K8s el ingress routea /api/* al backend
+
+  async function fetchJSON(path) {
+    const r = await fetch(BACKEND + path);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  }
+
+  function setDot(state) {
+    const d = document.getElementById('resp-dot');
+    d.className = 'dot ' + state;
+  }
+
+  async function callEndpoint(path, _, btn) {
+    setDot('loading');
+    document.getElementById('resp-status').textContent = 'Llamando ' + path + '...';
+    document.getElementById('response-box').textContent = '// cargando...';
+    try {
+      const data = await fetchJSON(path);
+      document.getElementById('response-box').textContent = JSON.stringify(data, null, 2);
+      document.getElementById('resp-status').textContent = '200 OK · ' + path;
+      setDot('ok');
+    } catch(e) {
+      document.getElementById('response-box').textContent = '// Error: ' + e.message;
+      document.getElementById('resp-status').textContent = 'Error · ' + path;
+      setDot('error');
+    }
+  }
+
+  async function loadInfo() {
+    try {
+      const info = await fetchJSON('/api/info');
+      document.getElementById('val-version').innerHTML  = `<span class="tag-pill">${info.version}</span>`;
+      document.getElementById('val-namespace').textContent = info.namespace;
+      document.getElementById('val-env').textContent      = info.environment;
+      document.getElementById('val-hostname').textContent  = info.hostname;
+      document.getElementById('val-ts').textContent        = info.timestamp;
+
+      const badge = document.getElementById('env-badge');
+      badge.textContent = info.environment;
+      badge.className = 'badge badge-' + (info.environment === 'production' ? 'prod' : info.environment === 'staging' ? 'staging' : 'local');
+    } catch(e) {
+      document.getElementById('val-version').textContent = 'backend no disponible';
+    }
+  }
+
+  async function loadConfig() {
+    try {
+      const cfg = await fetchJSON('/api/config');
+      document.getElementById('val-dbhost').textContent  = cfg.DB_HOST;
+      document.getElementById('val-secret').textContent  = cfg.SECRET_KEY;
+      document.getElementById('val-tf-ns').textContent   = cfg.NAMESPACE;
+    } catch(_) {}
+  }
+
+  async function loadChecks() {
+    const grid = document.getElementById('checks-grid');
+    try {
+      const d = await fetchJSON('/api/deploy-check');
+      const checks = [
+        { label: 'Variables de entorno cargadas',  ok: d.checks.env_vars_loaded },
+        { label: 'Namespace configurado',           ok: d.checks.namespace_set   },
+        { label: 'Image tag correcto',              ok: d.checks.version_tagged  },
+        { label: 'Backend responde (health)',       ok: true                     },
+      ];
+      grid.innerHTML = checks.map(c => `
+        <div class="check-item">
+          <div class="check-icon ${c.ok ? 'check-ok' : 'check-fail'}">${c.ok ? '✓' : '✗'}</div>
+          <span style="color:${c.ok ? '#e2e8f0' : '#f87171'}">${c.label}</span>
+        </div>
+      `).join('');
+    } catch(e) {
+      grid.innerHTML = `
+        <div class="check-item">
+          <div class="check-icon check-fail">✗</div>
+          <span style="color:#f87171">Backend no disponible — ¿está corriendo?</span>
+        </div>`;
+    }
+  }
+
+  function refreshAll() {
+    loadInfo();
+    loadConfig();
+    loadChecks();
+  }
+
+  refreshAll();
+  setInterval(refreshAll, 30000);
+</script>
+</body>
+</html>
