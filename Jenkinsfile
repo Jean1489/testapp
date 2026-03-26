@@ -58,8 +58,8 @@ pipeline {
 
         // ── 2. Terraform + Clone en paralelo ──────────────────────────────────
         stage('Terraform & Clone') {
-
-                stage('Terraform Apply') {
+           
+            stage('Terraform Apply') {
                     steps {
                         sh """
                             cd terraform
@@ -73,19 +73,19 @@ pipeline {
                                 -var="deploy_branch=${DEPLOY_BRANCH}"
                         """
                     }
-                }
-
-                stage('Clone Deploy Branch') {
-                    steps {
-                        withCredentials([usernamePassword(credentialsId: 'github-credentials', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
-                            sh """
-                                # Instalar kustomize si no existe
-                                if ! command -v kustomize &> /dev/null; then
-                                    curl -sLo kustomize.tar.gz https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.3.0/kustomize_v5.3.0_linux_amd64.tar.gz
-                                    tar -xzf kustomize.tar.gz
-                                    mv kustomize /usr/local/bin/
-                                    rm kustomize.tar.gz
-                                fi
+            }
+            
+            stage('Clone Deploy Branch') {
+                steps {
+                    withCredentials([usernamePassword(credentialsId: 'github-credentials', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
+                        sh """
+                        # Instalar kustomize si no existe
+                        if ! command -v kustomize &> /dev/null; then
+                            curl -sLo kustomize.tar.gz https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.3.0/kustomize_v5.3.0_linux_amd64.tar.gz
+                            tar -xzf kustomize.tar.gz
+                            mv kustomize /usr/local/bin/
+                            rm kustomize.tar.gz
+                        fi
 
                                 git config --global user.email "yanke1489@gmail.com"
                                 git config --global user.name "jenkins-local"
@@ -96,11 +96,10 @@ pipeline {
                                 git clone -b ${DEPLOY_BRANCH} --depth 5 \
                                     https://${GIT_USERNAME}:${GIT_PASSWORD}@${REPOSITORY} \
                                     testapp-deploy
-                            """
-                        }
+                        """
                     }
                 }
-            
+            }
         }
 
         // ── 3. Actualizar manifests ───────────────────────────────────────────
