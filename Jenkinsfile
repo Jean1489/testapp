@@ -110,8 +110,7 @@ pipeline {
         stage('Kubectl Apply') {
             steps {
                 sh '''
-                    cp -r testapp-deploy/${DEPLOY_FOLDER}/*.yaml overlays/staging/
-                    kubectl apply -k overlays/staging
+                    kubectl apply -k testapp-deploy/${DEPLOY_FOLDER}
                 '''
             }
         }
