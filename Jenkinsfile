@@ -58,7 +58,6 @@ pipeline {
 
         // ── 2. Terraform + Clone en paralelo ──────────────────────────────────
         stage('Terraform & Clone') {
-            parallel {
 
                 stage('Terraform Apply') {
                     steps {
@@ -88,7 +87,7 @@ pipeline {
                                     rm kustomize.tar.gz
                                 fi
 
-                                git config --global user.email "jenkins@local.com"
+                                git config --global user.email "yanke1489@gmail.com"
                                 git config --global user.name "jenkins-local"
 
                                 # Limpiar clone previo si existe
@@ -101,7 +100,7 @@ pipeline {
                         }
                     }
                 }
-            }
+            
         }
 
         // ── 3. Actualizar manifests ───────────────────────────────────────────

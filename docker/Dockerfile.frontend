@@ -1,8 +1,7 @@
 FROM nginx:1.25-alpine
 
+# Ambos archivos están ahora en el mismo contexto
 COPY index.html /usr/share/nginx/html/index.html
-
-# Configuración nginx: sirve el HTML y hace proxy al backend en /api/*
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80

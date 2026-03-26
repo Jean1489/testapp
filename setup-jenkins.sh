@@ -1,0 +1,128 @@
+#!/bin/bash
+# =============================================================================
+# setup-jenkins.sh — Configura Jenkins local para el pipeline de pruebas
+# Ejecutar UNA sola vez después de levantar docker-compose
+# =============================================================================
+
+set -e
+
+JENKINS_URL="http://localhost:8088"
+JENKINS_CLI="java -jar jenkins-cli.jar -s ${JENKINS_URL}"
+
+echo ""
+echo "╔══════════════════════════════════════╗"
+echo "║     Setup Jenkins Local              ║"
+echo "╚══════════════════════════════════════╝"
+echo ""
+
+# ── 1. Esperar a que Jenkins arranque ────────────────────────────────────────
+echo ">>> Esperando que Jenkins esté listo..."
+until curl -s -o /dev/null -w "%{http_code}" ${JENKINS_URL}/login | grep -q "200"; do
+    sleep 5
+    echo "    ... esperando"
+done
+echo "    Jenkins listo ✓"
+
+# ── 2. Obtener la contraseña inicial ─────────────────────────────────────────
+
+echo ""
+echo ">>> Contraseña inicial de Jenkins:"
+docker exec jenkins-local cat /var/jenkins_home/secrets/initialAdminPassword
+echo ""
+echo "    Abre http://localhost:8088 e ingresa esa contraseña"
+echo "    Instala los plugins sugeridos"
+echo "    Crea tu usuario admin"
+echo ""
+
+# ── 3. Instalar herramientas dentro del contenedor ───────────────────────────
+echo ">>> Instalando kubectl y terraform dentro del contenedor Jenkins..."
+
+docker exec jenkins-local bash -c '
+    # kubectl
+    if ! command -v kubectl &> /dev/null; then
+        curl -LO "https://dl.k8s.io/release/$(curl -Ls https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        chmod +x kubectl
+        mv kubectl /usr/local/bin/
+        echo "kubectl instalado ✓"
+    else
+        echo "kubectl ya existe ✓"
+    fi
+
+    # terraform
+    if ! command -v terraform &> /dev/null; then
+        apt-get update -qq && apt-get install -y -qq unzip
+        curl -sLo terraform.zip https://releases.hashicorp.com/terraform/1.7.0/terraform_1.7.0_linux_amd64.zip
+        unzip -q terraform.zip
+        mv terraform /usr/local/bin/
+        rm terraform.zip
+        echo "terraform instalado ✓"
+    else
+        echo "terraform ya existe ✓"
+    fi
+
+    # kustomize
+    if ! command -v kustomize &> /dev/null; then
+        curl -sLo kustomize.tar.gz https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.3.0/kustomize_v5.3.0_linux_amd64.tar.gz
+        tar -xzf kustomize.tar.gz
+        mv kustomize /usr/local/bin/
+        rm kustomize.tar.gz
+        echo "kustomize instalado ✓"
+    else
+        echo "kustomize ya existe ✓"
+    fi
+
+    # docker cli
+    if ! command -v docker &> /dev/null; then
+        curl -fsSL https://get.docker.com | sh
+        echo "docker instalado ✓"
+    else
+        echo "docker ya existe ✓"
+    fi
+'
+
+# ── 4. Dar acceso al kubeconfig del kind cluster ──────────────────────────────
+echo ""
+echo ">>> Copiando kubeconfig del kind cluster al contenedor Jenkins..."
+
+# Exportar el kubeconfig de kind con la IP correcta (no localhost)
+KIND_CLUSTER_NAME=$(kind get clusters | head -1)
+if [ -z "$KIND_CLUSTER_NAME" ]; then
+    echo "    ⚠️  No se encontró ningún cluster kind corriendo."
+    echo "    Créalo con: kind create cluster --name testapp"
+else
+    echo "    Cluster kind encontrado: ${KIND_CLUSTER_NAME}"
+
+    # Obtener la IP del nodo control-plane de kind
+    KIND_IP=$(docker inspect "${KIND_CLUSTER_NAME}-control-plane" --format '{{.NetworkSettings.Networks.kind.IPAddress}}' 2>/dev/null || \
+              docker inspect "kind-control-plane" --format '{{.NetworkSettings.Networks.kind.IPAddress}}')
+
+    echo "    IP del control-plane kind: ${KIND_IP}"
+
+    # Exportar kubeconfig y reemplazar 127.0.0.1 por la IP real del nodo kind
+    kind export kubeconfig --name "${KIND_CLUSTER_NAME}" --kubeconfig /tmp/kind-config
+    sed -i "s|127.0.0.1|${KIND_IP}|g" /tmp/kind-config
+
+    # Copiar al contenedor Jenkins
+    docker cp /tmp/kind-config jenkins-local:/root/.kube/config
+    docker cp /tmp/kind-config jenkins-local:/var/jenkins_home/.kube/config
+    rm /tmp/kind-config
+
+    echo "    kubeconfig copiado ✓"
+
+    # Verificar que Jenkins puede conectar al cluster
+    echo ""
+    echo ">>> Verificando conexión al cluster desde Jenkins..."
+    docker exec jenkins-local kubectl cluster-info && echo "    Conexión OK ✓" || echo "    ⚠️  No se pudo conectar al cluster"
+fi
+
+echo ""
+echo "╔══════════════════════════════════════════════════════════════╗"
+echo "║  Setup completado. Próximos pasos:                           ║"
+echo "║                                                              ║"
+echo "║  1. Abre http://localhost:8088                               ║"
+echo "║  2. Instala plugins: Git, Pipeline, Credentials Binding      ║"
+echo "║  3. Crea credencial 'github-credentials' (user + token)      ║"
+echo "║  4. Crea el pipeline apuntando al Jenkinsfile del repo       ║"
+echo "║  5. Cambia REPOSITORY en el Jenkinsfile con tu repo          ║"
+echo "╚══════════════════════════════════════════════════════════════╝"
+echo ""

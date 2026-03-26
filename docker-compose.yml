@@ -16,8 +16,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock   # Docker-in-Docker vía socket
       - ~/.kube:/root/.kube:ro                       # kubeconfig del kind cluster
       - ~/.kube:/var/jenkins_home/.kube:ro           # también accesible como jenkins home
-    environment:
-      JAVA_OPTS: "-Djenkins.install.runSetupWizard=false"  # salta el wizard inicial
     networks:
       - testapp-net
 
@@ -32,7 +30,7 @@ services:
     ports:
       - "3000:80"
     volumes:
-      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       backend:
         condition: service_healthy
