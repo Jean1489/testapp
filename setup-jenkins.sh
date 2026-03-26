@@ -100,7 +100,10 @@ else
 
     # Exportar kubeconfig y reemplazar 127.0.0.1 por la IP real del nodo kind
     kind export kubeconfig --name "${KIND_CLUSTER_NAME}" --kubeconfig /tmp/kind-config
-    sed -i "s|127.0.0.1|${KIND_IP}|g" /tmp/kind-config
+    sed -i \
+        -e "s|127.0.0.1|${KIND_IP}|g" \
+        -e "s|:[0-9]\+|:6443|g" \
+        /tmp/kind-config
 
     # Copiar al contenedor Jenkins
     docker cp /tmp/kind-config jenkins-local:/root/.kube/config
