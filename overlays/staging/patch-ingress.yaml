@@ -4,4 +4,4 @@ metadata:
   name: testapp-ingress
 spec:
   rules:
-    - host: PLACEHOLDER_HOST
+    - host: testapp.local
