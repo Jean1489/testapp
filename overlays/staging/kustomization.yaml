@@ -4,15 +4,15 @@ kind: Kustomization
 resources:
 - ../../base
 
-namespace: mytest2
+namespace: staging
 
 images:
 - name: localhost/backend
   newName: localhost:5001/backend
-  newTag: v1.0.0
+  newTag: v1.1
 - name: localhost/frontend
   newName: localhost:5001/frontend
-  newTag: v1.0.0
+  newTag: v1.1
 
 patches:
 - path: patch-ingress.yaml
