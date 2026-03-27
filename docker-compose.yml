@@ -14,10 +14,13 @@ services:
     volumes:
       - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock   # Docker-in-Docker vía socket
-      - ~/.kube:/root/.kube                     # kubeconfig del kind cluster
-      - ~/.kube:/var/jenkins_home/.kube           # también accesible como jenkins home
+      - ~/.kube/config-jenkins:/root/.kube/config                     # kubeconfig del kind cluster
+      - ~/.kube/config-jenkins:/var/jenkins_home/.kube/config           # también accesible como jenkins home
     networks:
       - testapp-net
+      - kind
+    environment:
+    - KUBECONFIG=/root/.kube/config
 
   # ── Frontend ─────────────────────────────────────────────────────────────────
   frontend:
@@ -67,3 +70,5 @@ volumes:
 networks:
   testapp-net:
     driver: bridge
+  kind:
+    external: true

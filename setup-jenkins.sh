@@ -24,7 +24,6 @@ done
 echo "    Jenkins listo ✓"
 
 # ── 2. Obtener la contraseña inicial ─────────────────────────────────────────
-
 echo ""
 echo ">>> Contraseña inicial de Jenkins:"
 docker exec jenkins-local cat /var/jenkins_home/secrets/initialAdminPassword
@@ -84,39 +83,18 @@ docker exec jenkins-local bash -c '
 echo ""
 echo ">>> Copiando kubeconfig del kind cluster al contenedor Jenkins..."
 
-# Exportar el kubeconfig de kind con la IP correcta (no localhost)
-KIND_CLUSTER_NAME=$(kind get clusters | head -1)
-if [ -z "$KIND_CLUSTER_NAME" ]; then
-    echo "    ⚠️  No se encontró ningún cluster kind corriendo."
-    echo "    Créalo con: kind create cluster --name testapp"
-else
-    echo "    Cluster kind encontrado: ${KIND_CLUSTER_NAME}"
+KIND_CLUSTER_NAME="testapp"
+KIND_IP=$(docker inspect "testapp-control-plane" --format '{{.NetworkSettings.Networks.kind.IPAddress}}')
 
-    # Obtener la IP del nodo control-plane de kind
-    KIND_IP=$(docker inspect "${KIND_CLUSTER_NAME}-control-plane" --format '{{.NetworkSettings.Networks.kind.IPAddress}}' 2>/dev/null || \
-              docker inspect "kind-control-plane" --format '{{.NetworkSettings.Networks.kind.IPAddress}}')
+kind export kubeconfig --name "${KIND_CLUSTER_NAME}" --kubeconfig /tmp/kind-config
+sed -i \
+    -e "s|127.0.0.1|${KIND_IP}|g" \
+    -e "s|:[0-9]\+|:6443|g" \
+    /tmp/kind-config
 
-    echo "    IP del control-plane kind: ${KIND_IP}"
-
-    # Exportar kubeconfig y reemplazar 127.0.0.1 por la IP real del nodo kind
-    kind export kubeconfig --name "${KIND_CLUSTER_NAME}" --kubeconfig /tmp/kind-config
-    sed -i \
-        -e "s|127.0.0.1|${KIND_IP}|g" \
-        -e "s|:[0-9]\+|:6443|g" \
-        /tmp/kind-config
-
-    # Copiar al contenedor Jenkins
-    docker cp /tmp/kind-config jenkins-local:/root/.kube/config
-    docker cp /tmp/kind-config jenkins-local:/var/jenkins_home/.kube/config
-    rm /tmp/kind-config
-
-    echo "    kubeconfig copiado ✓"
-
-    # Verificar que Jenkins puede conectar al cluster
-    echo ""
-    echo ">>> Verificando conexión al cluster desde Jenkins..."
-    docker exec jenkins-local kubectl cluster-info && echo "    Conexión OK ✓" || echo "    ⚠️  No se pudo conectar al cluster"
-fi
+cp /tmp/kind-config ~/.kube/config
+rm /tmp/kind-config
+echo "    kubeconfig actualizado en host ✓"
 
 echo ""
 echo "╔══════════════════════════════════════════════════════════════╗"

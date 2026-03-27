@@ -6,6 +6,8 @@
 set -e
 
 CLUSTER_NAME="testapp"
+REGISTRY_NAME="kind-registry"
+REGISTRY_PORT="5001"
 
 echo ""
 echo "╔══════════════════════════════════════╗"
@@ -13,7 +15,19 @@ echo "║     Setup kind cluster               ║"
 echo "╚══════════════════════════════════════╝"
 echo ""
 
-# ── 1. Crear el cluster ───────────────────────────────────────────────────────
+# ── 1. Levantar el registry local ────────────────────────────────────────────
+echo ">>> Configurando registry local..."
+if docker ps -a --format '{{.Names}}' | grep -q "^${REGISTRY_NAME}$"; then
+    echo "    Registry '${REGISTRY_NAME}' ya existe, saltando creación."
+else
+    docker run -d --restart=always \
+        -p "${REGISTRY_PORT}:5000" \
+        --name "${REGISTRY_NAME}" \
+        registry:2
+    echo "    Registry creado en localhost:${REGISTRY_PORT} ✓"
+fi
+
+# ── 2. Crear el cluster ───────────────────────────────────────────────────────
 if kind get clusters | grep -q "^${CLUSTER_NAME}$"; then
     echo ">>> Cluster '${CLUSTER_NAME}' ya existe, saltando creación."
 else
@@ -21,6 +35,10 @@ else
     cat <<EOF | kind create cluster --name ${CLUSTER_NAME} --config=-
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
+containerdConfigPatches:
+  - |-
+    [plugins."io.containerd.grpc.v1.cri".registry.mirrors."localhost:${REGISTRY_PORT}"]
+      endpoint = ["http://${REGISTRY_NAME}:5000"]
 nodes:
   - role: control-plane
     kubeadmConfigPatches:
@@ -40,7 +58,42 @@ EOF
     echo "    Cluster creado ✓"
 fi
 
-# ── 2. Instalar ingress-nginx ─────────────────────────────────────────────────
+# ── Generar kubeconfig para uso desde contenedores Docker ────────────────────
+echo ""
+echo ">>> Generando kubeconfig para Jenkins..."
+kind get kubeconfig --name "${CLUSTER_NAME}" \
+  | sed "s/127.0.0.1:[0-9]*/testapp-control-plane:6443/" \
+  > ~/.kube/config-jenkins
+
+echo "    Kubeconfig para Jenkins en ~/.kube/config-jenkins ✓"
+
+# ── 3. Conectar registry a la red de kind ────────────────────────────────────
+echo ""
+echo ">>> Conectando registry a la red 'kind'..."
+if docker network inspect kind | grep -q "${REGISTRY_NAME}"; then
+    echo "    Registry ya está en la red kind ✓"
+else
+    docker network connect kind "${REGISTRY_NAME}"
+    echo "    Registry conectado ✓"
+fi
+
+# ── 4. Publicar ConfigMap del registry (buena práctica para herramientas) ────
+echo ""
+echo ">>> Aplicando ConfigMap de registry..."
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: local-registry-hosting
+  namespace: kube-public
+data:
+  localRegistryHostingV1: |
+    host: "localhost:${REGISTRY_PORT}"
+    help: "https://kind.sigs.k8s.io/docs/user/local-registry/"
+EOF
+echo "    ConfigMap aplicado ✓"
+
+# ── 5. Instalar ingress-nginx ─────────────────────────────────────────────────
 echo ""
 echo ">>> Instalando ingress-nginx..."
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
@@ -53,13 +106,13 @@ kubectl wait --namespace ingress-nginx \
 
 echo "    ingress-nginx listo ✓"
 
-# ── 3. Crear namespace staging ───────────────────────────────────────────────
+# ── 6. Crear namespace staging ───────────────────────────────────────────────
 echo ""
 echo ">>> Creando namespace 'staging'..."
 kubectl create namespace staging --dry-run=client -o yaml | kubectl apply -f -
 echo "    Namespace listo ✓"
 
-# ── 4. Agregar entrada en /etc/hosts ─────────────────────────────────────────
+# ── 7. Agregar entrada en /etc/hosts ─────────────────────────────────────────
 echo ""
 echo ">>> Verificando /etc/hosts para testapp.local..."
 if grep -q "testapp.local" /etc/hosts; then
@@ -74,6 +127,7 @@ echo "╔═══════════════════════�
 echo "║  kind cluster listo:                                         ║"
 echo "║                                                              ║"
 echo "║  Cluster    : testapp                                        ║"
+echo "║  Registry   : localhost:5001                                 ║"
 echo "║  Ingress    : http://testapp.local:8090                      ║"
 echo "║  Namespace  : staging                                        ║"
 echo "║                                                              ║"
