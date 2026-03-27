@@ -72,10 +72,10 @@ pipeline {
                 script {
                     def imageEdits = []
                     if (params.FRONTEND_TAG?.trim()) {
-                        imageEdits << "kustomize edit set image localhost/frontend=localhost:5001/frontend:${FRONTEND_TAG}"
+                        imageEdits << "kustomize edit set image localhost/frontend=kind-registry:5000/frontend:${FRONTEND_TAG}"
                     }
                     if (params.BACKEND_TAG?.trim()) {
-                        imageEdits << "kustomize edit set image localhost/backend=localhost:5001/backend:${BACKEND_TAG}"
+                        imageEdits << "kustomize edit set image localhost/backend=kind-registry:5000/backend:${BACKEND_TAG}"
                     }
 
                     withEnv(["EDITS=${imageEdits.join('\n')}"]) {
