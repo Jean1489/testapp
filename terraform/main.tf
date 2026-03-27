@@ -9,7 +9,7 @@ terraform {
 }
 
 provider "kubernetes" {
-  config_path = "/var/jenkins_home/.kube/config"
+  config_path = var.kubeconfig_path
 }
 
 resource "kubernetes_namespace" "app" {

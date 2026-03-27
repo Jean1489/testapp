@@ -9,7 +9,7 @@ resources:
   - ingress.yaml
 
 images:
-  - name: localhost/frontend
+  - name: localhost:5001/frontend
     newTag: local
-  - name: localhost/backend
+  - name: localhost:5001/backend
     newTag: local
