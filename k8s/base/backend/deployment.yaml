@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: localhost:5001/backend:local 
+          image: localhost:5001/backend 
           ports:
             - name: http
               containerPort: 8080
