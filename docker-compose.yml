@@ -24,7 +24,7 @@ services:
     build:
       context: ./frontend
       dockerfile: ../docker/Dockerfile.frontend
-    image: localhost/frontend:${FRONTEND_TAG:-local}
+    image: localhost/frontend:${FRONTEND_TAG}
     container_name: testapp-frontend
     restart: unless-stopped
     ports:
@@ -42,7 +42,7 @@ services:
     build:
       context: ./backend
       dockerfile: ../docker/Dockerfile.backend
-    image: localhost/backend:${BACKEND_TAG:-local}
+    image: localhost/backend:${BACKEND_TAG}
     container_name: testapp-backend
     restart: unless-stopped
     ports:
