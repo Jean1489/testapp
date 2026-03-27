@@ -4,14 +4,14 @@ kind: Kustomization
 resources:
 - ../../base
 
-namespace: bossfinal
+namespace: staging
 
 images:
 - name: localhost/backend
-  newName: localhost:5001/backend
+  newName: kind-localhost:5001/backend
   newTag: v1.0.0
 - name: localhost/frontend
-  newName: localhost:5001/frontend
+  newName: kind-localhost:5001/frontend
   newTag: v1.0.0
 
 patches:
