@@ -8,10 +8,9 @@ namespace: staging
 
 images:
 - name: localhost/backend
-  newName: localhost/backend
-  newTag: "1"
+  newName: localhost/backend:1,3
 - name: localhost/frontend
-  newName: localhost/frontend:1,2
+  newName: localhost/frontend:1,8
 
 patches:
 - path: patch-ingress.yaml
