@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: vault-token
+type: Opaque
+stringData:
+  token: "root"    # en local usamos root — en prod va un token con política restringida
+                   # NUNCA commitear el valor real en prod, usar Sealed Secrets o reemplazar en CI

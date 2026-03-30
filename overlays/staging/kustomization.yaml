@@ -3,6 +3,8 @@ kind: Kustomization
 
 resources:
 - ../../base
+- secret-store.yaml
+- vault-token.yaml
 
 namespace: development
 
