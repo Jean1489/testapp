@@ -5,10 +5,8 @@ resources:
   - namespace.yaml
   - external-secret.yaml
   - frontend/deployment.yaml
-  - frontend/service.yaml
   - frontend/configmap.yaml
   - backend/deployment.yaml
-  - backend/service.yaml
   - backend/configmap.yaml
   - ingress.yaml
 
