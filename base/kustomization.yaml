@@ -9,6 +9,7 @@ resources:
   - backend/deployment.yaml
   - backend/configmap.yaml
   - ingress.yaml
+  - services.yaml
 
 images:
   - name: localhost/frontend
