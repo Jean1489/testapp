@@ -17,10 +17,10 @@ images:
   newTag: v1.0.0
 - name: localhost:5001/backend
   newName: localhost:5001/backend
-  newTag: v1.0.0
+  newTag: v2.0.0
 - name: localhost:5001/frontend
   newName: localhost:5001/frontend
-  newTag: v1.0.0
+  newTag: v2.0.0
 
 patches:
 - path: patch-ingress.yaml
