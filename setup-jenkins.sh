@@ -81,20 +81,30 @@ docker exec jenkins-local bash -c '
 
 # ── 4. Dar acceso al kubeconfig del kind cluster ──────────────────────────────
 echo ""
-echo ">>> Copiando kubeconfig del kind cluster al contenedor Jenkins..."
+echo ">>> Generando kubeconfigs del kind cluster..."
 
 KIND_CLUSTER_NAME="testapp"
 KIND_IP=$(docker inspect "testapp-control-plane" --format '{{.NetworkSettings.Networks.kind.IPAddress}}')
 
-kind export kubeconfig --name "${KIND_CLUSTER_NAME}" --kubeconfig /tmp/kind-config
-sed -i \
-    -e "s|127.0.0.1|${KIND_IP}|g" \
-    -e "s|:[0-9]\+|:6443|g" \
-    /tmp/kind-config
+# Puerto que kind expone en localhost del host (lo lee del kubeconfig original)
+kind export kubeconfig --name "${KIND_CLUSTER_NAME}" --kubeconfig /tmp/kind-config-host
 
-cp /tmp/kind-config ~/.kube/config
-rm /tmp/kind-config
-echo "    kubeconfig actualizado en host ✓"
+# -- kubeconfig para el HOST (127.0.0.1 con el puerto real) --
+# kind ya genera este con la dirección correcta para localhost
+cp /tmp/kind-config-host ~/.kube/config
+echo "    kubeconfig host actualizado ✓ (127.0.0.1)"
+
+# -- kubeconfig para JENKINS (IP interna de la red kind) --
+cp /tmp/kind-config-host /tmp/kind-config-jenkins
+
+# Reemplaza solo el server: line, no todos los puertos del archivo
+sed -i "s|server: https://127.0.0.1:[0-9]*|server: https://${KIND_IP}:6443|g" /tmp/kind-config-jenkins
+
+mkdir -p ~/.kube
+cp /tmp/kind-config-jenkins ~/.kube/config-jenkins
+
+rm /tmp/kind-config-host /tmp/kind-config-jenkins
+echo "    kubeconfig jenkins actualizado ✓ (${KIND_IP}:6443)"
 
 echo ""
 echo "╔══════════════════════════════════════════════════════════════╗"

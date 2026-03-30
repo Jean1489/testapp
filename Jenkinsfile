@@ -146,10 +146,10 @@ pipeline {
                 sh """
                     kubectl cluster-info
 
-                    cp testapp-deploy/${DEPLOY_FOLDER}/kustomization.yaml k8s/overlays/staging/kustomization.yaml
-                    cp testapp-deploy/${DEPLOY_FOLDER}/patch-ingress.yaml  k8s/overlays/staging/patch-ingress.yaml
+                    cp testapp-deploy/${DEPLOY_FOLDER}/kustomization.yaml overlays/staging/kustomization.yaml
+                    cp testapp-deploy/${DEPLOY_FOLDER}/patch-ingress.yaml  overlays/staging/patch-ingress.yaml
 
-                    kubectl apply -k k8s/overlays/staging
+                    kubectl apply -k overlays/staging
 
                     echo ">>> Esperando rollout..."
                     kubectl rollout status deployment/frontend -n ${NAMESPACE} --timeout=120s
