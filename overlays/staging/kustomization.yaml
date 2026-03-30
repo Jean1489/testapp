@@ -6,13 +6,19 @@ resources:
 - secret-store.yaml
 - vault-token.yaml
 
-namespace: development
+namespace: staging
 
 images:
 - name: localhost/backend
   newName: localhost:5001/backend
   newTag: v1.0.0
 - name: localhost/frontend
+  newName: localhost:5001/frontend
+  newTag: v1.0.0
+- name: localhost:5001/backend
+  newName: localhost:5001/backend
+  newTag: v1.0.0
+- name: localhost:5001/frontend
   newName: localhost:5001/frontend
   newTag: v1.0.0
 
