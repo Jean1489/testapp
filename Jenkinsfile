@@ -89,10 +89,10 @@ pipeline {
 
                     def imageEdits = []
                     if (frontendTag) {
-                        imageEdits << "kustomize edit set image localhost:5001/frontend=localhost:5001/frontend:${frontendTag}"
+                        imageEdits << "kustomize edit set image localhost/frontend=localhost:5001/frontend:${frontendTag}"
                     }
                     if (backendTag) {
-                        imageEdits << "kustomize edit set image localhost:5001/backend=localhost:5001/backend:${backendTag}"
+                        imageEdits << "kustomize edit set image localhost/backend=localhost:5001/backend:${backendTag}"
                     }
 
                     def imageEditsStr = imageEdits.join('\n')
