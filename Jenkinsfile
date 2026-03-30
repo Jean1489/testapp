@@ -146,7 +146,7 @@ pipeline {
                 sh """
                     kubectl cluster-info
 
-                    kubectl apply -k testapp-deploy/overlays/staging
+                    kubectl apply -k testapp-deploy/${DEPLOY_FOLDER}
 
                     echo ">>> Esperando rollout..."
                     kubectl rollout status deployment/frontend -n ${NAMESPACE} --timeout=120s
